@@ -37,8 +37,9 @@ def initialize_graph(G):
 
 def print_graph(G):
     pos = nx.get_node_attributes(G, 'pos')
-    nx.draw(G, pos, with_labels=True)
     labels = nx.get_edge_attributes(G, 'weight')
+    nx.draw(G, pos, with_labels=True)
+    # nx.draw_networkx_edges(G, pos, edgelist=[(5, 6)], edge_color="#4aff4a", )
     nx.draw_networkx_edge_labels(G, pos, edge_labels=labels, font_color='red')
     plt.show()
 
@@ -110,35 +111,38 @@ def get_disjoint_subsets_function_body(arr, k, accum, index):
 
 # дейкстра для более, чем 3 точек
 def dijkstra4(G, init_nodes):
-    print("init_nodes:", init_nodes)
+    global check_print_debug
+    if check_print_debug: print("init_nodes:", init_nodes)
     global count_operation
     global max_weight
     count_operation = 0
-    # 1 этап
-    first_path_length = {}
-    coordinates = {}  # todo здесь буду хранить все координаты
 
+    all_coordinates = {}  # здесь будут храниться все координаты
+    init_nodes_with_out_last = init_nodes[:len(init_nodes) - 1]  # [1, 3, 8]
+    if check_print_debug: print("init_nodes_with_out_last", init_nodes_with_out_last)
+
+    # 1 этап - 1-координаты
     for node in G.nodes:
         path_length = {}
+        first_coordinate = {}
 
-        for init_node in init_nodes:
+        for init_node in init_nodes_with_out_last:
             count_operation += 1
-            # if node != init_node:
+            first_coordinate[(init_node,)] = nx.dijkstra_path_length(G, node, init_node)  # храним координаты в tuple
             path_length[init_node] = nx.dijkstra_path_length(G, node, init_node)
 
-        first_path_length[node] = path_length
+        all_coordinates[node] = first_coordinate
 
     # ключ - вершина, значение - длина пути
-    for key in first_path_length:
-        print(key, ": ", first_path_length[key], sep="")
-    print()
+    if check_print_debug:
+        for key in all_coordinates:
+            print(key, ": ", all_coordinates[key], sep="")
+        print()
 
-    init_nodes_with_out_last = init_nodes[:len(init_nodes) - 1]  # [1, 3, 8]
-    print("init_nodes_with_out_last", init_nodes_with_out_last)
-
+    # остальные этапы
     for count_nodes_in_omegas in range(2, len(init_nodes)):
         lots_of_omegas = list(combinations(init_nodes_with_out_last, count_nodes_in_omegas))
-        print("\nlots_of_omegas:", lots_of_omegas)
+        if check_print_debug: print("\nlots_of_omegas:", lots_of_omegas)
         # первая стадия
         for lot_omega in lots_of_omegas:
             nodes_to_subsets_omega = [lot_omega[0]]
@@ -149,100 +153,108 @@ def dijkstra4(G, init_nodes):
                 nodes_to_subsets_omega.append(lot_omega[i])
                 omegas = get_disjoint_subsets(nodes_to_subsets_omega)
 
-            print("\n-----------------\nOmegas:")
+            if check_print_debug: print("\n-----------------\nOmegas:", omegas)
+            nodes_in_omega = []
             for omega in omegas:
-                print("\nOmega", omega)
-                nodes_in_omega = [item for sublist in omega for item in sublist]
+                for sublist in omega:
+                    nodes_in_omega += [elem for elem in sublist if elem not in nodes_in_omega]
 
-                for node in G.nodes:
-                    if nodes_in_omega.count(node) == 0:  # перебираем все вершины кроме тех, что попали в омегу
-                        tempmap = first_path_length[node]
-                        quasi_coordinates[node] = tempmap[omega[0][0]] + tempmap[omega[1][0]]
+            for node in G.nodes:
+                if nodes_in_omega.count(node) == 0:  # перебираем все вершины кроме тех, что попали в омегу
+                    quasi_coordinates[node] = max_weight
 
-                # упорядочиваем квазикоординаты в порядке возрастания
-                quasi_coordinates = dict(
-                    collections.OrderedDict(sorted(quasi_coordinates.items(), key=lambda kv: kv[1])))
+            for omega in omegas:
+                if check_print_debug: print("\nOmega", omega)
 
+                if nodes_in_omega == [1, 10, 6]:
+                    udal = True
+
+                for node in quasi_coordinates:
+                    current_coordinates = all_coordinates[node]
+                    quasi_coordinates[node] = min(quasi_coordinates[node],
+                                                  current_coordinates[tuple(sorted(omega[0]))] +
+                                                  current_coordinates[
+                                                      tuple(sorted(omega[1]))])
+
+            # упорядочиваем квазикоординаты в порядке возрастания
+            quasi_coordinates = dict(
+                collections.OrderedDict(sorted(quasi_coordinates.items(), key=lambda kv: kv[1])))
+
+            if check_print_debug:
                 print("Quasi coordinates:\t", quasi_coordinates)
                 for key in quasi_coordinates:
                     print(key, ": ", quasi_coordinates[key], sep="")
 
-                # вторая стадия
-                fi = []
-                lot_of_pi = {}
-                number_ro = 1
-                lot_of_ro = {}
-                pometka_lambda = {node: max_weight for node in G.adj}
+            # вторая стадия
+            fi = []
+            lot_of_pi = {}
+            number_ro = 1
+            lot_of_ro = {}
 
-                print("\n1 шаг")
-                print(nodes_in_omega)
+            if check_print_debug: print("\n1 шаг")
+            if check_print_debug: print(nodes_in_omega)
 
-                # 1 шаг
-                weight = first_path_length[nodes_in_omega[0]][nodes_in_omega[1]]
-                fi.extend(nodes_in_omega + [quasi for quasi in quasi_coordinates if quasi_coordinates[quasi] == weight])
+            # 1 шаг
+            coordinate = sorted([node for node in nodes_in_omega if node != nodes_in_omega[0]])
+            weight = all_coordinates[nodes_in_omega[0]][tuple(coordinate)]
+            fi.extend(nodes_in_omega + [quasi for quasi in quasi_coordinates if quasi_coordinates[quasi] == weight])
+            pometka_lambda = {node: max_weight for node in G.adj if node not in fi}
 
-                lot_of_ro[number_ro] = Ro(fi.copy(), weight)
-                lot_of_pi[number_ro] = fi.copy()
+            lot_of_ro[number_ro] = Ro(fi.copy(), weight)
+            lot_of_pi[number_ro] = fi.copy()
 
-                quasi_coordinates = {key: value for key, value in quasi_coordinates.items() if value != weight}
+            quasi_coordinates = {key: value for key, value in quasi_coordinates.items() if value != weight}
 
-                # следующие шаги
-                print("\nследующие шаги")
-                all_nodes = [node for node in G.nodes if node not in fi]
+            # следующие шаги
+            if check_print_debug: print("\nследующие шаги")
+            all_nodes = [node for node in G.nodes if node not in fi]
 
-                while len(all_nodes) > 0:
-                    new_min_weight = max_weight
-                    next_nodes = [key for key in G.nodes if
-                                  key not in fi]  # вершины, для которых сейчас будем заново строить лямбды
-                    for node in next_nodes:
-                        for ro in lot_of_ro.values():
-                            for vertex in ro.vertex:
-                                if G.adj[node].get(vertex) is not None:
-                                    new_min_weight = min(new_min_weight,
-                                                         ro.weight + G.adj[node].get(vertex).get("weight"))
-                                    pometka_lambda[node] = min(pometka_lambda[node],
-                                                               ro.weight + G.adj[node].get(vertex).get("weight"))
-                                    # print(node, "and", vertex, "=",
-                                    #       ro.weight + G.adj[node].get(vertex).get("weight"))
-                    new_min_weight = min(new_min_weight, quasi_coordinates[list(quasi_coordinates.keys())[0]])
-                    # print("new_min_weight", new_min_weight)
-                    new_vertex = list(
-                        set([quasi for quasi in quasi_coordinates if quasi_coordinates[quasi] == new_min_weight] \
-                            + [node for node in pometka_lambda if pometka_lambda[node] == new_min_weight]))
-                    quasi_coordinates = {key: quasi_coordinates[key] for key in quasi_coordinates if
-                                         key not in new_vertex}
-                    new_ro = Ro(new_vertex, new_min_weight)
-                    number_ro += 1
-                    lot_of_pi[number_ro] = new_vertex
-                    fi += [vertex for vertex in new_vertex if vertex not in fi]
-                    lot_of_ro[number_ro] = new_ro
-                    all_nodes = [node for node in all_nodes if node not in fi]
-                    print(f"lot_of_ro[{number_ro}]: {lot_of_ro[number_ro]}")
-                    print("fi", fi)
+            while len(all_nodes) > 0:
+                new_min_weight = max_weight
+                next_nodes = [key for key in G.nodes if
+                              key not in fi]  # вершины, для которых сейчас будем заново строить лямбды
+                for node in next_nodes:
+                    for ro in lot_of_ro.values():
+                        for vertex in ro.vertex:
+                            if G.adj[node].get(vertex) is not None:
+                                new_min_weight = min(new_min_weight,
+                                                     ro.weight + G.adj[node].get(vertex).get("weight"))
+                                pometka_lambda[node] = min(pometka_lambda[node],
+                                                           ro.weight + G.adj[node].get(vertex).get("weight"))
+                new_min_weight = min(new_min_weight, quasi_coordinates[list(quasi_coordinates.keys())[0]])
+                new_vertex = list(
+                    set([quasi for quasi in quasi_coordinates if quasi_coordinates[quasi] == new_min_weight] \
+                        + [node for node in pometka_lambda if pometka_lambda[node] == new_min_weight]))
+                quasi_coordinates = {key: quasi_coordinates[key] for key in quasi_coordinates if
+                                     key not in new_vertex}
+                for vertex in new_vertex:
+                    pometka_lambda.pop(vertex)
+                new_ro = Ro(new_vertex, new_min_weight)
+                number_ro += 1
+                lot_of_pi[number_ro] = new_vertex
+                fi += [vertex for vertex in new_vertex if vertex not in fi]
+                lot_of_ro[number_ro] = new_ro
+                all_nodes = [node for node in all_nodes if node not in fi]
 
-                # if any([(i in nodes_in_omega) for i in G.adj[node]]):
-                #     print(node)
-                print("\n\npometka_lambda", pometka_lambda)
-                print("\nlot_of_ro")
-                for key_dictionary in lot_of_ro:
-                    print(f"{key_dictionary}: {lot_of_ro[key_dictionary]}")
+            if check_print_debug:
+                print("\npometka_lambda", pometka_lambda)
+                print("lot_of_ro", lot_of_ro)
+                # print("lot_of_pi", lot_of_pi)
+                # print("fi", fi, "\n")
+            for ro in lot_of_ro.values():
+                for vertex in ro.vertex:
+                    all_coordinates[vertex][tuple(sorted(nodes_in_omega))] = ro.weight
 
-                print("\nlot_of_pi")
+            # stein_nodes = lot_of_ro[1].vertex + [init_nodes[len(init_nodes) - 1]]
+            # print("stein nodes:", stein_nodes)
 
-                for key_dictionary in lot_of_pi:
-                    print(f"{key_dictionary}: {lot_of_pi[key_dictionary]}")
+    if check_print_debug:
+        for key in all_coordinates:
+            print(key, ": ", all_coordinates[key], sep="")
+        print()
 
-                print("\nfi", fi)
-
-                # print("\nffff", G.adj)
-                # print("ffff", G.adj[1])
-                # print("ffff", G.adj[1][5])
-                # print("ffff", G.adj[1].get(6))
-                # print("ffff", G.adj[1][5]['weight'])
-
-                # break  # todo удалить все брейки
-            # break
-        # break
+    print(
+        f"length: {all_coordinates[init_nodes[len(init_nodes) - 1]][tuple(sorted(init_nodes[:len(init_nodes) - 1]))]}")
 
 
 # main:
@@ -267,6 +279,12 @@ initialize_graph(G)
 
 
 # дейкстра для 4 точек
-init_nodes4 = [1, 3, 8, 9]
-dijkstra4(G, init_nodes4)
+# init_nodes4 = [1, 3, 8, 9]  # норм
+# init_nodes4 = [1, 6, 8, 10]
+# dijkstra4(G, init_nodes4)
+print()
+check_print_debug = True
+# dijkstra4(G, [1, 8, 6, 10])
+dijkstra4(G, [1, 10, 6, 8])
+# dijkstra4(G, [1, 8, 6, 10, 3])
 print_graph(G)
