@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import copy
 from itertools import combinations
 import collections
+import time
 from ro import Ro
 
 max_weight = 100000
@@ -115,76 +116,82 @@ def get_path_by_nodes(nodes_in_path):
     return true_path
 
 
-def sort_dict_by_keys(main_dict, keys):
+def sort_dict_by_keys(my_dict, keys):
     result = {}
     for key in keys:
-        result[key] = main_dict.get(key)
+        result[key] = my_dict.get(key)
     return result
 
 
 # дейкстра для более, чем 3 точек
-def dijkstra4(G, init_nodes):
-    global check_print_debug
-    if check_print_debug: print("init_nodes:", init_nodes)
+def dijkstra4(G, init_nodes, check_print):
     global max_weight
+    if check_print: print("init_nodes:", init_nodes)
 
     all_coordinates = {}  # здесь будут храниться все координаты
     all_paths = {}  # здесь будут храниться все пути
+
+    # по алгоритму надо находить пути до всех точек из init_nodes, кроме последней
     init_nodes_with_out_last = init_nodes[:len(init_nodes) - 1]
-    if check_print_debug: print("init_nodes_with_out_last", init_nodes_with_out_last)
+    if check_print: print("init_nodes_with_out_last", init_nodes_with_out_last)
 
     # 1 этап - 1-координаты
     for node in G.nodes:
-        path = {}
+        first_path = {}
         first_coordinate = {}
 
         for init_node in init_nodes_with_out_last:
-            first_coordinate[(init_node,)] = nx.dijkstra_path_length(G, node, init_node)  # храним координаты в tuple
-            path[(init_node,)] = get_path_by_nodes(nx.dijkstra_path(G, node, init_node))
+            # храним пути и координаты в tuple
+            first_coordinate[(init_node,)] = nx.dijkstra_path_length(G, node, init_node)
+            first_path[(init_node,)] = get_path_by_nodes(nx.dijkstra_path(G, node, init_node))
 
-        all_coordinates[node] = first_coordinate
-        all_paths[node] = path
+        all_coordinates[node] = first_coordinate  # ключ - вершина, значение - длина пути
+        all_paths[node] = first_path  # ключ - вершина, значение - путь
 
-    # ключ - вершина, значение - длина пути
-    if check_print_debug:
+    if check_print:
         for key in all_coordinates:
             print(key, ": ", all_coordinates[key], sep="")
         print()
 
     # остальные этапы
     for count_nodes_in_omegas in range(2, len(init_nodes)):
-        lots_of_omegas = list(combinations(init_nodes_with_out_last, count_nodes_in_omegas))
-        if check_print_debug: print("\nlots_of_omegas:", lots_of_omegas)
-        # первая стадия
+        # всевозможные множества вершин омега (на k-ом этапе в омеге будет k вершин)
+        lots_of_omegas = list(combinations(init_nodes_with_out_last, count_nodes_in_omegas))  # всевозможные
+        if check_print: print("\nlots_of_omegas:", lots_of_omegas)
+        # первая стадия. находим квазикоординаты
         for lot_omega in lots_of_omegas:
             nodes_to_subsets_omega = [lot_omega[0]]
             quasi_coordinates = {}
             quasi_paths = {}
 
+            # omegas - всевозможные разбиения множества вершин омега
             omegas = []
             for i in range(1, len(lot_omega)):
                 nodes_to_subsets_omega.append(lot_omega[i])
                 omegas = get_disjoint_subsets(nodes_to_subsets_omega)
 
-            if check_print_debug: print("\n-----------------\nOmegas:", omegas)
+            if check_print: print("\n-----------------\nOmegas:", omegas)
             nodes_in_omega = []
             for omega in omegas:
                 for sublist in omega:
                     nodes_in_omega += [elem for elem in sublist if elem not in nodes_in_omega]
 
+            # инициализируем квазикоординаты
             for node in G.nodes:
                 if nodes_in_omega.count(node) == 0:  # перебираем все вершины кроме тех, что попали в омегу
                     quasi_coordinates[node] = max_weight
                     quasi_paths[node] = []
 
+            # рассматриваем всевозможные разбиения множества вершин омега
             for omega in omegas:
-                if check_print_debug: print("\nOmega", omega)
+                if check_print: print("\nOmega", omega)
 
+                # находим квазикоординаты
                 for node in quasi_coordinates:
                     current_coordinates = all_coordinates[node]
                     current_paths = all_paths[node]
-                    sum_current_coordinates = current_coordinates[tuple(sorted(omega[0]))] + current_coordinates[
-                        tuple(sorted(omega[1]))]
+                    sum_current_coordinates = current_coordinates[tuple(sorted(omega[0]))] \
+                                              + current_coordinates[tuple(sorted(omega[1]))]
 
                     if quasi_coordinates[node] > sum_current_coordinates:
                         quasi_coordinates[node] = sum_current_coordinates
@@ -197,7 +204,7 @@ def dijkstra4(G, init_nodes):
             # упорядочиваем пути по квазикоординатам
             quasi_paths = sort_dict_by_keys(quasi_paths, quasi_coordinates.keys())
 
-            if check_print_debug:
+            if check_print:
                 print("Quasi coordinates:\t", quasi_coordinates)
                 for key in quasi_coordinates:
                     print(key, ": ", quasi_coordinates[key], sep="")
@@ -206,40 +213,41 @@ def dijkstra4(G, init_nodes):
                     print(key, ": ", quasi_paths[key], sep="")
 
             # вторая стадия
-            fi = []
-            lot_of_pi = {}
-            number_ro = 1
-            lot_of_ro = {}
+            fi = []  # множество вершин, снабженных координатами на текущем шаге
+            lot_of_ro = {}  # множество для хранения координат ro. Используется отдельный класс Ro
+            number_ro = 1  # счетчик для записи в lot_of_ro
 
-            if check_print_debug: print(nodes_in_omega)
+            if check_print: print(nodes_in_omega)
 
-            # 1 шаг
+            # 1 шаг:
+            # наименьшей координатой снабжаются вершины nodes_in_omega и вершины, чьи кавзикоординаты равны first_weight
             coordinate = sorted([node for node in nodes_in_omega if node != nodes_in_omega[0]])
             first_weight = all_coordinates[nodes_in_omega[0]][tuple(coordinate)]
             fi.extend(
                 nodes_in_omega + [quasi for quasi in quasi_coordinates if quasi_coordinates[quasi] == first_weight])
-            first_edges = all_paths[nodes_in_omega[0]][tuple(coordinate)]
-            for vertex in fi:
-                all_paths[vertex][tuple(sorted(nodes_in_omega))] = first_edges
+            first_edges = {}
+            for node_in_omega in nodes_in_omega:
+                first_edges[node_in_omega] = all_paths[nodes_in_omega[0]][tuple(coordinate)]
 
             for key, edge in quasi_paths.items():
                 if key in fi:
-                    for e in edge:
-                        if e not in first_edges:
-                            first_edges.append(e)
-            pometka_lambda = {node: max_weight for node in G.adj if node not in fi}
-            pometka_lambda_path = {node: [] for node in G.adj if node not in fi}
+                    first_edges[key] = edge
+
+            for vertex in fi:
+                all_paths[vertex][tuple(sorted(nodes_in_omega))] = first_edges[vertex]
 
             lot_of_ro[number_ro] = Ro(fi.copy(), first_edges, first_weight)
-            lot_of_pi[number_ro] = fi.copy()
 
             quasi_coordinates = {key: value for key, value in quasi_coordinates.items() if value != first_weight}
             quasi_paths = {key: value for key, value in quasi_paths.items() if key in quasi_coordinates}
 
             # следующие шаги
-            all_nodes = [node for node in G.nodes if node not in fi]
+            pometka_lambda = {node: max_weight for node in G.adj if node not in fi}
+            pometka_lambda_path = {node: [] for node in G.adj if node not in fi}
+            nodes_outside_fi = [node for node in G.nodes if node not in fi]
 
-            while len(all_nodes) > 0:
+            # идем по циклу до тех пор, пока все вершины не будут снабжены координатами
+            while len(nodes_outside_fi) > 0:
                 new_min_weight = max_weight
                 next_nodes = [key for key in G.nodes if
                               key not in fi]  # вершины, для которых сейчас будем заново строить лямбды
@@ -251,57 +259,48 @@ def dijkstra4(G, init_nodes):
                                                      ro.weight + G.adj[node].get(vertex).get("weight"))
                                 if pometka_lambda[node] > ro.weight + G.adj[node].get(vertex).get("weight"):
                                     pometka_lambda[node] = ro.weight + G.adj[node].get(vertex).get("weight")
-                                    pometka_lambda_path[node] = ro.edges + get_path_by_nodes(
-                                        # todo скорее всего неправильно
+                                    pometka_lambda_path[node] = ro.edges[vertex] + get_path_by_nodes(
                                         nx.dijkstra_path(G, node, vertex))
                 new_min_weight = min(new_min_weight, quasi_coordinates[list(quasi_coordinates.keys())[0]])
-                new_vertex = []
-                all_new_edges = []
+                new_vertex = []  # вершины, которые будут помещены в следующее ro
+                new_edges = {}  # ребра, которые будут помещены в следующее ro
                 for coordinate in quasi_coordinates:
                     if quasi_coordinates[coordinate] == new_min_weight:
                         new_vertex.append(coordinate)
-                        all_new_edges.append(quasi_paths[coordinate])
+                        new_edges[coordinate] = quasi_paths[coordinate]
                         all_paths[coordinate][tuple(sorted(nodes_in_omega))] = quasi_paths[coordinate]
 
                 for node in pometka_lambda:
                     if pometka_lambda[node] == new_min_weight:
                         new_vertex.append(node)
-                        all_new_edges.append(pometka_lambda_path[node])
+                        new_edges[node] = pometka_lambda_path[node]
                         all_paths[node][tuple(sorted(nodes_in_omega))] = pometka_lambda_path[node]
                 new_vertex = list(set(new_vertex))
-                new_edges = set()
-                for path in all_new_edges:
-                    new_edges.update(path)
-                new_edges = list(new_edges)
 
+                # пересчитываем квазикоординаты, квазипути, пометки для лямбд
                 quasi_coordinates = {key: quasi_coordinates[key] for key in quasi_coordinates if
                                      key not in new_vertex}
                 quasi_paths = {key: quasi_paths[key] for key in quasi_paths if key not in new_vertex}
                 for vertex in new_vertex:
                     pometka_lambda.pop(vertex)
                     pometka_lambda_path.pop(vertex)
-                new_ro = Ro(new_vertex, new_edges, new_min_weight)
-                number_ro += 1
-                lot_of_pi[number_ro] = new_vertex
-                fi += [vertex for vertex in new_vertex if vertex not in fi]
-                lot_of_ro[number_ro] = new_ro
-                all_nodes = [node for node in all_nodes if node not in fi]
 
-            if check_print_debug:
+                new_ro = Ro(new_vertex, new_edges, new_min_weight)
+                fi += [vertex for vertex in new_vertex if vertex not in fi]
+                number_ro += 1
+                lot_of_ro[number_ro] = new_ro
+                nodes_outside_fi = [node for node in nodes_outside_fi if node not in fi]
+
+            if check_print:
                 print("lot_of_ro", end=' { ')
                 for key, value in lot_of_ro.items():
                     print(f"{key}: {value}", end=" |||| ")
                 print("}")
-                # print("lot_of_pi", lot_of_pi)
-                # print("fi", fi, "\n")
             for ro in lot_of_ro.values():
                 for vertex in ro.vertex:
                     all_coordinates[vertex][tuple(sorted(nodes_in_omega))] = ro.weight
 
-            # stein_nodes = lot_of_ro[1].vertex + [init_nodes[len(init_nodes) - 1]]
-            # print("stein nodes:", stein_nodes)
-
-    if check_print_debug:
+    if check_print:
         print("\nall_coordinates")
         for key in all_coordinates:
             print(key, ": ", all_coordinates[key], sep="")
@@ -313,11 +312,14 @@ def dijkstra4(G, init_nodes):
 
     result_length = all_coordinates[init_nodes[len(init_nodes) - 1]][tuple(sorted(init_nodes[:len(init_nodes) - 1]))]
     result_path = all_paths[init_nodes[len(init_nodes) - 1]][tuple(sorted(init_nodes[:len(init_nodes) - 1]))]
+    steiner_points = {vertex for edge in result_path for vertex in edge if vertex not in init_nodes}  # точки штейнера
+    if len(steiner_points) == 0:
+        steiner_points = "{}"
 
-    print(
-        f"length: {result_length}")
-    print(
-        f"path: {result_path}")
+    if check_print:
+        print(f"result length: {result_length}")
+        print(f"result path: {result_path}")
+        print(f"Steiner points: {steiner_points}")
 
     return result_path
 
@@ -326,13 +328,15 @@ def dijkstra4(G, init_nodes):
 G = nx.Graph()
 initialize_graph(G)
 
-# дейкстра для 4 точек
-# init_nodes4 = [1, 3, 8, 9]  # норм
-# init_nodes4 = [1, 6, 8, 10]
-# dijkstra4(G, init_nodes4)
 print()
-check_print_debug = True
-result_path = dijkstra4(G, [1, 8, 6, 10])
+result_path = dijkstra4(G, [1, 10, 6, 8], True)
+
+start_time = time.time()
+for i in range(100):
+    dijkstra4(G, [1, 8, 6, 10], False)
+end_time = time.time()
+result_time = (end_time - start_time) / 100
+print(f"\nresult time: {result_time}")
 # dijkstra4(G, [1, 10, 6, 8])
 # dijkstra4(G, [1, 8, 6, 10, 3])
 print_graph(G, result_path)
