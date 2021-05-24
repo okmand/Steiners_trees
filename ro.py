@@ -7,4 +7,3 @@ class Ro:
 
     def __repr__(self):
         return f"vertex -> {str(self.vertex)}, edges -> {str(self.edges)}, weight -> {str(self.weight)}"
-

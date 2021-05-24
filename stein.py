@@ -14,25 +14,23 @@ def initialize_graph(G):
     G.add_node(1, pos=(20, 50))
     G.add_node(2, pos=(45, 50))
     G.add_node(3, pos=(65, 60))
-    # G.add_node(4, pos=(90, 50))  # comment
+    G.add_node(4, pos=(90, 50))
     G.add_node(5, pos=(30, 30))
     G.add_node(6, pos=(60, 30))
-    # G.add_node(7, pos=(80, 35))  # comment
+    G.add_node(7, pos=(80, 35))
     G.add_node(8, pos=(10, 10))
     G.add_node(9, pos=(30, 10))
     G.add_node(10, pos=(50, 10))
-    G.add_node(11, pos=(70, 10))  # comment
-    # G.add_node(12, pos=(95, 20))  # comment
-    e = [(1, 2, 1), (1, 5, 4), (2, 5, 2),
-         (2, 3, 1),
-         # (3, 4, 4), (4, 7, 1),  # comment
-         (2, 6, 3),
-         # (6, 7, 4), (7, 12, 4),  # comment
-         (5, 8, 1), (8, 9, 3), (5, 9, 2),
-         (9, 10, 1), (5, 6, 4), (6, 10, 4),
-         (10, 11, 1), (6, 11, 2),
-         # (11, 12, 3)  # comment
-         ]
+    G.add_node(11, pos=(70, 10))
+    G.add_node(12, pos=(95, 20))
+    e = [
+        (1, 2, 1), (1, 5, 4), (2, 5, 2),
+        (2, 3, 1), (3, 4, 4), (4, 7, 1),
+        (2, 6, 3), (6, 7, 4), (7, 12, 4),
+        (5, 8, 1), (8, 9, 3), (5, 9, 2),
+        (9, 10, 1), (5, 6, 4), (6, 10, 4),
+        (10, 11, 1), (6, 11, 2), (11, 12, 3)
+    ]
     G.add_weighted_edges_from(e)
 
 
@@ -54,7 +52,7 @@ def dijkstra2(G, a, b):
 
 # дейкстра для 3 точек
 def dijkstra3(G, init_nodes):
-    min = 10000
+    min = max_weight
     array_min_i = []
     for i in G.nodes:
         local_min = 0
@@ -123,8 +121,8 @@ def sort_dict_by_keys(my_dict, keys):
     return result
 
 
-# дейкстра для более, чем 3 точек
-def dijkstra4(G, init_nodes, check_print):
+# алгоритм Левина для более, чем 4 точек
+def levin_algorithm(G, init_nodes, check_print):
     global max_weight
     if check_print: print("init_nodes:", init_nodes)
 
@@ -158,7 +156,7 @@ def dijkstra4(G, init_nodes, check_print):
         # всевозможные множества вершин омега (на k-ом этапе в омеге будет k вершин)
         lots_of_omegas = list(combinations(init_nodes_with_out_last, count_nodes_in_omegas))  # всевозможные
         if check_print: print("\nlots_of_omegas:", lots_of_omegas)
-        # первая стадия. находим квазикоординаты
+        # первая стадия. находим квазикоординаты и квазипути
         for lot_omega in lots_of_omegas:
             nodes_to_subsets_omega = [lot_omega[0]]
             quasi_coordinates = {}
@@ -176,7 +174,7 @@ def dijkstra4(G, init_nodes, check_print):
                 for sublist in omega:
                     nodes_in_omega += [elem for elem in sublist if elem not in nodes_in_omega]
 
-            # инициализируем квазикоординаты
+            # инициализируем квазикоординаты и квазипути
             for node in G.nodes:
                 if nodes_in_omega.count(node) == 0:  # перебираем все вершины кроме тех, что попали в омегу
                     quasi_coordinates[node] = max_weight
@@ -186,7 +184,7 @@ def dijkstra4(G, init_nodes, check_print):
             for omega in omegas:
                 if check_print: print("\nOmega", omega)
 
-                # находим квазикоординаты
+                # находим квазикоординаты и квазипути
                 for node in quasi_coordinates:
                     current_coordinates = all_coordinates[node]
                     current_paths = all_paths[node]
@@ -201,7 +199,7 @@ def dijkstra4(G, init_nodes, check_print):
             # упорядочиваем квазикоординаты в порядке возрастания
             quasi_coordinates = dict(
                 collections.OrderedDict(sorted(quasi_coordinates.items(), key=lambda kv: kv[1])))
-            # упорядочиваем пути по квазикоординатам
+            # упорядочиваем квазипути по квазикоординатам
             quasi_paths = sort_dict_by_keys(quasi_paths, quasi_coordinates.keys())
 
             if check_print:
@@ -324,19 +322,17 @@ def dijkstra4(G, init_nodes, check_print):
     return result_path
 
 
-# main:
-G = nx.Graph()
-initialize_graph(G)
+if __name__ == "__main__":
+    G = nx.Graph()
+    initialize_graph(G)
 
-print()
-result_path = dijkstra4(G, [1, 10, 6, 8], True)
+    init_nodes = [1, 3, 5, 12]  # инициализирующие вершины, на которых будет строиться дерево Штейнера
+    result_path = levin_algorithm(G, init_nodes, True)
 
-start_time = time.time()
-for i in range(100):
-    dijkstra4(G, [1, 8, 6, 10], False)
-end_time = time.time()
-result_time = (end_time - start_time) / 100
-print(f"\nresult time: {result_time}")
-# dijkstra4(G, [1, 10, 6, 8])
-# dijkstra4(G, [1, 8, 6, 10, 3])
-print_graph(G, result_path)
+    start_time = time.time()
+    for i in range(20):
+        levin_algorithm(G, init_nodes, False)
+    end_time = time.time()
+    result_time = (end_time - start_time) / 20
+    print(f"\nresult time: {result_time}")
+    print_graph(G, result_path)
