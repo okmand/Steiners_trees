@@ -4,14 +4,15 @@ import copy
 from itertools import combinations
 import collections
 import time
+import random
 from ro import Ro
 
 max_weight = 100000
 
 
-def initialize_random_graph(n, m):
+def initialize_random_graph(n, m, min_random, max_random):
     G = nx.dense_gnm_random_graph(n, m)  # второй параметр - количество ребер
-    weights = [(edge[0], edge[1], 2) for edge in G.edges]
+    weights = [(edge[0], edge[1], random.randint(min_random, max_random)) for edge in G.edges]
     G.add_weighted_edges_from(weights)
     return G
 
@@ -19,9 +20,9 @@ def initialize_random_graph(n, m):
 def print_random_graph(G, result_path):
     pos = nx.spring_layout(G)
     labels = nx.get_edge_attributes(G, 'weight')
-    nx.draw(G, pos, with_labels=True)
-    nx.draw_networkx_edges(G, pos, edge_color="#dedede", )
-    nx.draw_networkx_edges(G, pos, edgelist=result_path, edge_color="#f70909", )
+    nx.draw(G, pos, with_labels=True, node_size=200, font_size=9)
+    nx.draw_networkx_edges(G, pos, edge_color="#dedede")
+    nx.draw_networkx_edges(G, pos, edgelist=result_path, edge_color="#f70909")
     nx.draw_networkx_edge_labels(G, pos, edge_labels=labels, font_color='#015e98')
     plt.show()
 
@@ -55,9 +56,9 @@ def initialize_graph():
 def print_graph(G, result_path):
     pos = nx.get_node_attributes(G, 'pos')
     labels = nx.get_edge_attributes(G, 'weight')
-    nx.draw(G, pos, with_labels=True)
-    nx.draw_networkx_edges(G, pos, edge_color="#dedede", )
-    nx.draw_networkx_edges(G, pos, edgelist=result_path, edge_color="#f70909", )
+    nx.draw(G, pos, with_labels=True, node_size=200, font_size=9)
+    nx.draw_networkx_edges(G, pos, edge_color="#dedede")
+    nx.draw_networkx_edges(G, pos, edgelist=result_path, edge_color="#f70909")
     nx.draw_networkx_edge_labels(G, pos, edge_labels=labels, font_color='#015e98')
     plt.show()
 
@@ -140,9 +141,8 @@ def sort_dict_by_keys(my_dict, keys):
 
 
 # алгоритм Левина для более, чем 4 точек
-def levin_algorithm(G, init_nodes, check_print):
+def levin_algorithm(G, init_nodes, check_print, check_print_result):
     global max_weight
-    if check_print: print("init_nodes:", init_nodes)
 
     all_coordinates = {}  # здесь будут храниться все координаты
     all_paths = {}  # здесь будут храниться все пути
@@ -332,9 +332,10 @@ def levin_algorithm(G, init_nodes, check_print):
     if len(steiner_points) == 0:
         steiner_points = "{}"
 
-    if check_print:
+    if check_print_result:
         print(f"number of the nodes: {len(G.nodes)}")
         print(f"number of the edges: {len(G.edges)}")
+        print(f"init_nodes: {init_nodes}")
         print(f"result length: {result_length}")
         print(f"result path: {result_path}")
         print(f"Steiner points: {steiner_points}")
@@ -344,15 +345,18 @@ def levin_algorithm(G, init_nodes, check_print):
 
 if __name__ == "__main__":
     # G = initialize_graph()
-    G = initialize_random_graph(13, 30)
+    n, m, min_random, max_random = 13, 30, 2, 9
+    G = initialize_random_graph(n, m, min_random, max_random)
     print_random_graph(G, [])
 
-    init_nodes = [1, 3, 5, 12]  # инициализирующие вершины, на которых будет строиться дерево Штейнера
-    result_path = levin_algorithm(G, init_nodes, True)
+    # init_nodes - инициализирующие вершины, на которых будет строиться дерево Штейнера
+    number_init_nodes = 7
+    init_nodes = random.sample(range(0, n), number_init_nodes)
+    result_path = levin_algorithm(G, init_nodes, False, True)
 
     start_time = time.time()
     for i in range(20):
-        levin_algorithm(G, init_nodes, False)
+        levin_algorithm(G, init_nodes, False, False)
     end_time = time.time()
     result_time = (end_time - start_time) / 20
     print(f"\nresult time: {result_time}")
