@@ -17,14 +17,16 @@ def initialize_random_graph(n, m, min_random, max_random):
     return G
 
 
-def print_random_graph(G, result_path):
-    pos = nx.spring_layout(G)
+def print_random_graph(G, result_path, pos):
+    if pos is None:
+        pos = nx.spring_layout(G)
     labels = nx.get_edge_attributes(G, 'weight')
     nx.draw(G, pos, with_labels=True, node_size=200, font_size=9)
     nx.draw_networkx_edges(G, pos, edge_color="#dedede")
     nx.draw_networkx_edges(G, pos, edgelist=result_path, edge_color="#f70909")
     nx.draw_networkx_edge_labels(G, pos, edge_labels=labels, font_color='#015e98')
     plt.show()
+    return pos
 
 
 def initialize_graph():
@@ -347,10 +349,11 @@ if __name__ == "__main__":
     # G = initialize_graph()
     n, m, min_random, max_random = 13, 30, 2, 9
     G = initialize_random_graph(n, m, min_random, max_random)
-    print_random_graph(G, [])
+    pos = None
+    pos = print_random_graph(G, [], pos)
 
     # init_nodes - инициализирующие вершины, на которых будет строиться дерево Штейнера
-    number_init_nodes = 7
+    number_init_nodes = 9
     init_nodes = random.sample(range(0, n), number_init_nodes)
     result_path = levin_algorithm(G, init_nodes, False, True)
 
@@ -361,5 +364,5 @@ if __name__ == "__main__":
     result_time = (end_time - start_time) / 20
     print(f"\nresult time: {result_time}")
 
-    print_random_graph(G, result_path)
+    print_random_graph(G, result_path, pos)
     # print_graph(G, result_path)
