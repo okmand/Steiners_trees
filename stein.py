@@ -5,13 +5,27 @@ from itertools import combinations
 import collections
 import time
 import random
+import sys
 from ro import Ro
 
 max_weight = 100000
 
 
+def check_sparse_graph(G):
+    for node in G.nodes:
+        if len(G.adj[node]) == 0:
+            return False
+    return True
+
+
 def initialize_random_graph(n, m, min_random, max_random):
     G = nx.dense_gnm_random_graph(n, m)  # второй параметр - количество ребер
+    attempt = 5  # 5 попыток на то, чтобы построить граф
+    while attempt > 0 and not check_sparse_graph(G):
+        G = nx.dense_gnm_random_graph(n, m)
+        attempt -= 1
+    if not check_sparse_graph(G):
+        return None
     weights = [(edge[0], edge[1], random.randint(min_random, max_random)) for edge in G.edges]
     G.add_weighted_edges_from(weights)
     return G
@@ -349,6 +363,9 @@ if __name__ == "__main__":
     # G = initialize_graph()
     n, m, min_random, max_random = 13, 30, 2, 9
     G = initialize_random_graph(n, m, min_random, max_random)
+    if G is None:
+        sys.exit("You can't build a connected graph with such input data")
+
     pos = None
     pos = print_random_graph(G, [], pos)
 
