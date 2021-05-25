@@ -9,8 +9,25 @@ from ro import Ro
 max_weight = 100000
 
 
-# todo: после написание алгоритма '# comment', раскомментить
-def initialize_graph(G):
+def initialize_random_graph(n, m):
+    G = nx.dense_gnm_random_graph(n, m)  # второй параметр - количество ребер
+    weights = [(edge[0], edge[1], 2) for edge in G.edges]
+    G.add_weighted_edges_from(weights)
+    return G
+
+
+def print_random_graph(G, result_path):
+    pos = nx.spring_layout(G)
+    labels = nx.get_edge_attributes(G, 'weight')
+    nx.draw(G, pos, with_labels=True)
+    nx.draw_networkx_edges(G, pos, edge_color="#dedede", )
+    nx.draw_networkx_edges(G, pos, edgelist=result_path, edge_color="#f70909", )
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=labels, font_color='#015e98')
+    plt.show()
+
+
+def initialize_graph():
+    G = nx.Graph()
     G.add_node(1, pos=(20, 50))
     G.add_node(2, pos=(45, 50))
     G.add_node(3, pos=(65, 60))
@@ -32,6 +49,7 @@ def initialize_graph(G):
         (10, 11, 1), (6, 11, 2), (11, 12, 3)
     ]
     G.add_weighted_edges_from(e)
+    return G
 
 
 def print_graph(G, result_path):
@@ -315,6 +333,8 @@ def levin_algorithm(G, init_nodes, check_print):
         steiner_points = "{}"
 
     if check_print:
+        print(f"number of the nodes: {len(G.nodes)}")
+        print(f"number of the edges: {len(G.edges)}")
         print(f"result length: {result_length}")
         print(f"result path: {result_path}")
         print(f"Steiner points: {steiner_points}")
@@ -323,8 +343,9 @@ def levin_algorithm(G, init_nodes, check_print):
 
 
 if __name__ == "__main__":
-    G = nx.Graph()
-    initialize_graph(G)
+    # G = initialize_graph()
+    G = initialize_random_graph(13, 30)
+    print_random_graph(G, [])
 
     init_nodes = [1, 3, 5, 12]  # инициализирующие вершины, на которых будет строиться дерево Штейнера
     result_path = levin_algorithm(G, init_nodes, True)
@@ -335,4 +356,6 @@ if __name__ == "__main__":
     end_time = time.time()
     result_time = (end_time - start_time) / 20
     print(f"\nresult time: {result_time}")
-    print_graph(G, result_path)
+
+    print_random_graph(G, result_path)
+    # print_graph(G, result_path)
