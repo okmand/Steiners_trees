@@ -34,34 +34,33 @@ if __name__ == "__main__":
     bold = workbook.add_format({'bold': True})
 
     current_column = 0
-    min_n, max_n = 3, 100  # будет генерироваться эксель с разным количеством вершин графа
+    min_n, max_n = 3, 5  # будет генерироваться эксель с разным количеством вершин графа
 
     for current_n in range(min_n, max_n + 1):
+        print(f"current_n: {current_n}, time: {time.time() - start_time_main}")
         worksheet.write(0, current_column, current_n)
         worksheet.write(1, current_column, 'm', bold)
         worksheet.write(0, current_column + 1, 'init_nodes', bold)
         max_current_m = int(current_n * (current_n - 1) / 2)
-        current_row = 2
 
-        # инициализация
+        current_row = 2
+        # запись ребер в экселе
         for i in range(current_n - 1, max_current_m + 1):
             worksheet.write(current_row, current_column, i)
             current_row += 1
 
         for init_nodes in range(2, current_n + 1):
-            current_m = current_n - 1
             current_row = 2
             current_column += 1
             worksheet.write(1, current_column, init_nodes)
-            for j in range(current_n - 1, max_current_m + 1):
+            for current_m in range(current_n - 1, max_current_m + 1):
+                # current_str = "m_" + str(current_m) + "_n_" + str(current_n) + "_init_" + str(init_nodes)  # тест экселя
                 current_str = get_algorithm_time(current_n, current_m, 10, 50, current_column, 7, 3)
                 worksheet.write(current_row, current_column, current_str)
-                current_m += 1
                 current_row += 1
 
         current_column += 2
 
-    # сохраняем и закрываем
     workbook.close()
     webbrowser.open('stein_excel.xlsx')
 
