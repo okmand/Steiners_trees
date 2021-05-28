@@ -8,6 +8,7 @@ import webbrowser
 # тесты по алгоритму.
 # number_iterations_random - количество раз, сколько сгенерируется граф с данными n и m
 # number_iterations_algorithm - количество раз, сколько пройдет алгоритм
+# number_iterations_random * number_iterations_algorithm = сколько раз пройдет алгоритм на текущих n и m
 def get_algorithm_time(n, m, min_random_weight, max_random_weight, number_init_nodes, number_iterations_random,
                        number_iterations_algorithm):
     result_time_algorithm = []
@@ -54,8 +55,9 @@ if __name__ == "__main__":
             current_column += 1
             worksheet.write(1, current_column, init_nodes)
             for current_m in range(current_n - 1, max_current_m + 1):
-                # current_str = "m_" + str(current_m) + "_n_" + str(current_n) + "_init_" + str(init_nodes)  # тест экселя
-                current_str = get_algorithm_time(current_n, current_m, 10, 50, current_column, 7, 3)
+                # тест экселя
+                # current_str = "m_" + str(current_m) + "_n_" + str(current_n) + "_init_" + str(init_nodes)
+                current_str = get_algorithm_time(current_n, current_m, 10, 50, init_nodes, 5, 3)
                 worksheet.write(current_row, current_column, current_str)
                 current_row += 1
 

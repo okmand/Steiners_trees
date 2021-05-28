@@ -366,6 +366,7 @@ if __name__ == "__main__":
     number_init_nodes = 9
     init_nodes = random.sample(range(0, n), number_init_nodes)
     result_path = levin_algorithm(G, init_nodes, False, True)
+    print_random_graph(G, result_path, pos)
 
     start_time = time.time()
     for i in range(20):
@@ -374,5 +375,4 @@ if __name__ == "__main__":
     result_time = (end_time - start_time) / 20
     print(f"\nresult time: {result_time}")
 
-    print_random_graph(G, result_path, pos)
     # print_graph(G, result_path)
