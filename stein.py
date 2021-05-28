@@ -8,7 +8,7 @@ import random
 import sys
 from ro import Ro
 
-max_weight = 100000
+max_weight = 10000000
 
 
 def initialize_random_graph(n, m, min_random_weight, max_random_weight):
