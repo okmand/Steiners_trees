@@ -30,15 +30,15 @@ def get_algorithm_time(n, m, min_random_weight, max_random_weight, number_init_n
 
 if __name__ == "__main__":
     start_time_main = time.time()
-    workbook = xls.Workbook('stein_excel.xlsx')
+    workbook = xls.Workbook('stein_excel_20.xlsx')
     worksheet = workbook.add_worksheet("first")
     bold = workbook.add_format({'bold': True})
 
     current_column = 0
-    min_n, max_n = 3, 5  # будет генерироваться эксель с разным количеством вершин графа
+    min_n, max_n = 20, 20  # будет генерироваться эксель с разным количеством вершин графа
+    step_m = 10
 
     for current_n in range(min_n, max_n + 1):
-        print(f"current_n: {current_n}, time: {time.time() - start_time_main}")
         worksheet.write(0, current_column, current_n)
         worksheet.write(1, current_column, 'm', bold)
         worksheet.write(0, current_column + 1, 'init_nodes', bold)
@@ -46,7 +46,7 @@ if __name__ == "__main__":
 
         current_row = 2
         # запись ребер в экселе
-        for i in range(current_n - 1, max_current_m + 1):
+        for i in range(current_n - 1, max_current_m + 1, step_m):
             worksheet.write(current_row, current_column, i)
             current_row += 1
 
@@ -54,17 +54,18 @@ if __name__ == "__main__":
             current_row = 2
             current_column += 1
             worksheet.write(1, current_column, init_nodes)
-            for current_m in range(current_n - 1, max_current_m + 1):
+            for current_m in range(current_n - 1, max_current_m + 1, step_m):
+                print(f"current_n: {current_n}, current_m: {current_m}, init_nodes: {init_nodes}, time: {time.time() - start_time_main}")
                 # тест экселя
                 # current_str = "m_" + str(current_m) + "_n_" + str(current_n) + "_init_" + str(init_nodes)
-                current_str = get_algorithm_time(current_n, current_m, 10, 50, init_nodes, 5, 3)
+                current_str = get_algorithm_time(current_n, current_m, 10, 50, init_nodes, 1, 2)
                 worksheet.write(current_row, current_column, current_str)
                 current_row += 1
 
         current_column += 2
 
     workbook.close()
-    webbrowser.open('stein_excel.xlsx')
+    webbrowser.open('stein_excel_20.xlsx')
 
     end_time_main = time.time()
     result_time_main = (end_time_main - start_time_main)
