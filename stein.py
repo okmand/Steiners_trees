@@ -181,7 +181,8 @@ def levin_algorithm(G, init_nodes, check_print, check_print_result):
     # остальные этапы
     for count_nodes_in_omegas in range(2, len(init_nodes)):
         # всевозможные множества вершин омега (на k-ом этапе в омеге будет k вершин)
-        lots_of_omegas = list(combinations(init_nodes_with_out_last, count_nodes_in_omegas))  # всевозможные
+        # их количество C из init_nodes_with_out_last по count_nodes_in_omegas (C из n по k)
+        lots_of_omegas = list(combinations(init_nodes_with_out_last, count_nodes_in_omegas))  # всевозможные множества
         if check_print: print("\nlots_of_omegas:", lots_of_omegas)
         # первая стадия. находим квазикоординаты и квазипути
         for lot_omega in lots_of_omegas:
@@ -193,7 +194,7 @@ def levin_algorithm(G, init_nodes, check_print, check_print_result):
             omegas = []
             for i in range(1, len(lot_omega)):
                 nodes_to_subsets_omega.append(lot_omega[i])
-                omegas = get_disjoint_subsets(nodes_to_subsets_omega)
+                omegas = get_disjoint_subsets(nodes_to_subsets_omega)  # таких множеств будет (2^(n-1))-1
 
             if check_print: print("\n-----------------\nOmegas:", omegas)
             nodes_in_omega = []

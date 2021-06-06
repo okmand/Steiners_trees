@@ -3,7 +3,7 @@ import time
 import random
 from stein import initialize_random_graph, levin_algorithm
 import webbrowser
-
+import pickle
 
 # тесты по алгоритму.
 # number_iterations_random - количество раз, сколько сгенерируется граф с данными n и m
@@ -36,7 +36,8 @@ if __name__ == "__main__":
 
     current_column = 0
     min_n, max_n = 20, 20  # будет генерироваться эксель с разным количеством вершин графа
-    step_m = 10
+    step_m = 50
+    intermediate_data = {}
 
     for current_n in range(min_n, max_n + 1):
         worksheet.write(0, current_column, current_n)
@@ -55,11 +56,12 @@ if __name__ == "__main__":
             current_column += 1
             worksheet.write(1, current_column, init_nodes)
             for current_m in range(current_n - 1, max_current_m + 1, step_m):
-                print(f"current_n: {current_n}, current_m: {current_m}, init_nodes: {init_nodes}, time: {time.time() - start_time_main}")
-                # тест экселя
-                # current_str = "m_" + str(current_m) + "_n_" + str(current_n) + "_init_" + str(init_nodes)
-                current_str = get_algorithm_time(current_n, current_m, 10, 50, init_nodes, 1, 2)
-                worksheet.write(current_row, current_column, current_str)
+                current_data = get_algorithm_time(current_n, current_m, 10, 50, init_nodes, 1, 2)
+                print(f"current_n: {current_n}, current_m: {current_m}, init_nodes: {init_nodes}, time: {time.time() - start_time_main},\tcurrent_data: {current_data}")
+                intermediate_data[(current_n, current_m, init_nodes)] = current_data  # сохраняем промежуточные данные
+                with open('data.txt', 'wb') as f:
+                    pickle.dump(intermediate_data, f)  # сохраняем промежуточные данные в файл data.txt
+                worksheet.write(current_row, current_column, current_data)
                 current_row += 1
 
         current_column += 2
