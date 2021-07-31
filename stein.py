@@ -132,6 +132,7 @@ def get_disjoint_subsets_function_body(arr, k, accum, index):
     return result
 
 
+# генерируется путь по входным в функцию вершинам
 # input: [1, 2, 5, 9, 10], output: [(1, 2), (2, 5), (5, 9), (9, 10)]
 def get_path_by_nodes(nodes_in_path):
     true_path = []
@@ -149,7 +150,7 @@ def sort_dict_by_keys(my_dict, keys):
     return result
 
 
-# алгоритм Левина для более, чем 4 точек
+# алгоритм Левина
 def levin_algorithm(G, init_nodes, check_print, check_print_result):
     global max_weight
 
@@ -212,7 +213,7 @@ def levin_algorithm(G, init_nodes, check_print, check_print_result):
             for omega in omegas:
                 if check_print: print("\nOmega", omega)
 
-                # находим квазикоординаты и квазипути
+                # находим квазикоординаты и квазипути. сложность O(n*k)
                 for node in quasi_coordinates:
                     current_coordinates = all_coordinates[node]
                     current_paths = all_paths[node]
@@ -237,6 +238,8 @@ def levin_algorithm(G, init_nodes, check_print, check_print_result):
                 print("Quasi paths:", )
                 for key in quasi_paths:
                     print(key, ": ", quasi_paths[key], sep="")
+
+            # сложность первой стадии - О((2^(n-1))*n*k)
 
             # вторая стадия
             fi = []  # множество вершин, снабженных координатами на текущем шаге
@@ -354,7 +357,6 @@ def levin_algorithm(G, init_nodes, check_print, check_print_result):
 
 
 if __name__ == "__main__":
-    # G = initialize_graph()
     n, m, min_random_weight, max_random_weight = 13, 30, 2, 9
     G = initialize_random_graph(n, m, min_random_weight, max_random_weight)
     if G is None:
@@ -375,5 +377,3 @@ if __name__ == "__main__":
     end_time = time.time()
     result_time = (end_time - start_time) / 20
     print(f"\nresult time: {result_time}")
-
-    # print_graph(G, result_path)

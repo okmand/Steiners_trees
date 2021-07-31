@@ -30,12 +30,14 @@ def get_algorithm_time(n, m, min_random_weight, max_random_weight, number_init_n
 
 if __name__ == "__main__":
     start_time_main = time.time()
-    workbook = xls.Workbook('stein_excel_20.xlsx')
+    workbook = xls.Workbook('stein_excel_25_2.xlsx')
     worksheet = workbook.add_worksheet("first")
     bold = workbook.add_format({'bold': True})
 
     current_column = 0
-    min_n, max_n = 20, 20  # будет генерироваться эксель с разным количеством вершин графа
+    min_n, max_n = 25, 25  # будет генерироваться эксель с разным количеством вершин графа
+    m = 150
+    init_nodes_arr = [15, 20, 25]
     step_m = 50
     intermediate_data = {}
 
@@ -51,23 +53,24 @@ if __name__ == "__main__":
             worksheet.write(current_row, current_column, i)
             current_row += 1
 
-        for init_nodes in range(2, current_n + 1):
+        for init_nodes in init_nodes_arr:
             current_row = 2
             current_column += 1
             worksheet.write(1, current_column, init_nodes)
-            for current_m in range(current_n - 1, max_current_m + 1, step_m):
-                current_data = get_algorithm_time(current_n, current_m, 10, 50, init_nodes, 1, 2)
-                print(f"current_n: {current_n}, current_m: {current_m}, init_nodes: {init_nodes}, time: {time.time() - start_time_main},\tcurrent_data: {current_data}")
-                intermediate_data[(current_n, current_m, init_nodes)] = current_data  # сохраняем промежуточные данные
-                with open('data.txt', 'wb') as f:
-                    pickle.dump(intermediate_data, f)  # сохраняем промежуточные данные в файл data.txt
-                worksheet.write(current_row, current_column, current_data)
-                current_row += 1
+            # for current_m in range(current_n - 1, max_current_m + 1, step_m):
+            current_data = get_algorithm_time(current_n, m, 10, 50, init_nodes, 1, 1)
+            # current_data = "get_algorithm_time(" + str(current_n) + ", " + str(m) + ", 10, 50, " + str(init_nodes) + ", 1, 1)"
+            print(f"current_n: {current_n}, current_m: {m}, init_nodes: {init_nodes}, time: {time.time() - start_time_main},\tcurrent_data: {current_data}")
+            intermediate_data[(current_n, m, init_nodes)] = current_data  # сохраняем промежуточные данные
+            with open('data.txt', 'wb') as f:
+                pickle.dump(intermediate_data, f)  # сохраняем промежуточные данные в файл data.txt
+            worksheet.write(current_row, current_column, current_data)
+            current_row += 1
 
         current_column += 2
 
     workbook.close()
-    webbrowser.open('stein_excel_20.xlsx')
+    webbrowser.open('stein_excel_25_2.xlsx')
 
     end_time_main = time.time()
     result_time_main = (end_time_main - start_time_main)
